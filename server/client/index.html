@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Keycloak JavaScript Example</title>
+    <script type="text/javascript" src="http://localhost:8080/js/keycloak.js"></script>
+    <script type="text/javascript">
+
+        function initKeycloak() {
+            keycloak = new Keycloak({ realm: 'myrealm', clientId: 'myclient'});
+            keycloak.init({onLoad: 'login-required', pkceMethod: 'S256'})
+                .then(function () {
+                    document.getElementById('title').textContent = "Logged in as " + keycloak.idTokenParsed.preferred_username;
+                    document.getElementById('idtoken').textContent = stringify(keycloak.idTokenParsed);
+                    document.getElementById('accesstoken').textContent = stringify(keycloak.tokenParsed);
+            }).catch(function () {
+                window.location.reload();
+            });
+        }
+
+        function refreshToken() {
+            window.keycloak.updateToken(-1).then(
+                function() { 
+                    document.getElementById('idtoken').textContent = stringify(keycloak.idTokenParsed);
+                    document.getElementById('accesstoken').textContent = stringify(keycloak.tokenParsed);
+                }
+            )
+        }
+
+        function myresource() {
+            fetch('http://localhost:5000/myresource', {
+                headers: {Authorization: `Bearer ${keycloak.token}`}
+            })
+            .then (
+                function(resp) {
+                    if (resp.ok) {
+                        resp.json().then(json => document.getElementById('resourceoutput').textContent = stringify(json))
+                    } else {
+                        document.getElementById('resourceoutput').textContent = "Forbidden"
+
+                    }
+                }
+            )
+        }
+
+        function stringify(token) {
+            return JSON.stringify(token, null, 2)
+        }
+    </script>
+</head>
+<body onload="initKeycloak()">
+
+    <h1 id="title">Not logged in</h1>
+
+    <a href="#" onclick="window.keycloak.logout()">Log out</a>
+
+    <h2>ID Token</h2>
+    <pre id="idtoken">
+    </pre>
+
+    <h2>Access Token</h2>
+    <pre id="accesstoken">
+    </pre>
+
+    <p><button onclick="refreshToken()">Refresh Token</button></p>
+
+    <p><button onclick="myresource()">Call myresource</button></p>
+    <pre id="resourceoutput">
+    </pre>
+</div>
+
+</body>
+</html>
